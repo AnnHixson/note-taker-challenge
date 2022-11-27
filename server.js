@@ -13,11 +13,6 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static('public'));
 
-// Either this...
-// app.get('*', (req, res) => 
-//     res.sendFile(path.join(__dirname, '/public/index.html'))
-// );
-// ...or this
 app.get('/', (req, res) =>
     res.sendFile(path.join(__dirname, '/public/index.html'))
 );
@@ -25,6 +20,18 @@ app.get('/', (req, res) =>
 app.get('/notes', (req, res) => 
     res.sendFile(path.join(__dirname, 'public/notes.html'))
 );
+
+app.get('/api/notes/:id', (req, res) => {
+    const selectedNote = req.params.id;
+
+    for (let i = 0; i < notesData.length; i++) {
+        if (selectedNote === notesData[i].id) {
+            return res.json(notesData[i]);
+        }
+    }
+
+    return res.json('No note found');
+});
 
 // GET request for notes
 app.get('/api/notes', (req, res) => {
@@ -47,15 +54,15 @@ app.post('/api/notes', (req, res) => {
     console.info(`${req.method} request received to add a note`);
 
     // Destructuring assignment for the items in req.body
-    const { noteTitle, noteText } = req.body;
+    const { title, text } = req.body;
 
     // recieve a new note to save on the request body
-    // if (noteTitle && noteText) {
-        const newNote = {
-            noteTitle,
-            noteText,
+    if (title && text) {
+        const activeNote = {
+            title,
+            text,
             // give each note a unique id when it's saved
-            noteId: randomUUID(),
+            id: randomUUID(),
         };
 
         fs.readFile('./db/db.json', 'utf8', (err, data) => {
@@ -65,7 +72,7 @@ app.post('/api/notes', (req, res) => {
                 const parsedNotes = JSON.parse(data);
 
                 // add new note to db.json file
-                parsedNotes.push(newNote);
+                parsedNotes.push(activeNote);
 
                 // return new note to client
                 fs.writeFile(
@@ -81,14 +88,14 @@ app.post('/api/notes', (req, res) => {
 
         const response = {
             status: 'success',
-            body: newNote,
+            body: activeNote,
         };
 
         console.log(response);
         res.status(201).json(response);
-    // } else {
-    //     res.status(500).json('Error in adding note');
-    // }
+    } else {
+        res.status(500).json('Error in adding note');
+    }
 });
 
 app.listen(PORT, () =>
